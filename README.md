@@ -69,49 +69,20 @@ npm run dev
 
 Open the local URL printed by Vite (normally http://localhost:5173). The CRM dashboard is available at http://localhost:5173/dashboard.
 
-## 4. Outlook email setup (optional)
+## 4. Gmail SMTP setup (optional)
 
-To enable follow-up email delivery, edit `backend/.env` and set:
+To enable follow-up email delivery, use a Google App Password. First enable 2-Step Verification on the Google Account, then create an App Password at https://myaccount.google.com/apppasswords (if the option is available for your account). App Passwords may be unavailable for some account types or security configurations.
+
+Add these values to `backend/.env`:
 
 ```env
-MAIL_USERNAME=your-outlook-address@outlook.com
-MAIL_PASSWORD=your-mail-provider-approved-credential
-MAIL_FROM=your-outlook-address@outlook.com
+MAIL_USERNAME=your-gmail-address@gmail.com
+MAIL_PASSWORD=your-16-character-app-password
+MAIL_FROM=your-gmail-address@gmail.com
 MAIL_PORT=587
-MAIL_SERVER=smtp.office365.com
+MAIL_SERVER=smtp.gmail.com
 MAIL_STARTTLS=true
 MAIL_SSL_TLS=false
 ```
 
-For a personal Outlook.com mailbox, use `MAIL_SERVER=smtp-mail.outlook.com`. For Microsoft 365 work or school mailboxes, use `smtp.office365.com`. Both use port 587 with STARTTLS. The mailbox must allow SMTP AUTH; Microsoft 365 administrators may need to enable authenticated SMTP for the mailbox. Use an app password only if your account and organization support it, or configure an approved OAuth-based mail integration if password-based SMTP is disabled. Never commit `backend/.env` or share mailbox credentials. Email sending remains unavailable until valid credentials and provider-side SMTP access are configured.
-
-## Main API routes
-
-| Method | Route | Purpose |
-| --- | --- | --- |
-| GET | `/` | API status |
-| GET | `/health` | Database/API health |
-| POST | `/leads` | Create and analyze a lead |
-| GET | `/leads` | List leads |
-| GET | `/leads/{lead_id}` | Retrieve one lead |
-| PUT | `/leads/{lead_id}` | Update lead details or pipeline status |
-| DELETE | `/leads/{lead_id}` | Delete a lead |
-| GET | `/dashboard/stats` | CRM dashboard metrics and recent leads |
-| POST | `/leads/{lead_id}/analyze` | Re-run lead analysis |
-| GET | `/leads/{lead_id}/response` | Generate a follow-up draft |
-| POST | `/leads/{lead_id}/approve` | Explicitly approve a follow-up email |
-| POST | `/leads/{lead_id}/send-email` | Send the follow-up email |
-
-## Configuration
-
-Frontend API URL is controlled by `VITE_API_URL`. Backend settings are in `backend/.env`:
-
-- `OLLAMA_URL`
-- `OLLAMA_MODEL`
-- `OLLAMA_TIMEOUT`
-- `CORS_ORIGINS`
-- Optional `MAIL_*` SMTP values
-
-## Deployment note
-
-This repository is configured for local development with Ollama on the same machine as the API. A public frontend cannot reach a visitor's `127.0.0.1` Ollama service. For public production deployment, host the API and model on an appropriately secured server, configure the production frontend origin in `CORS_ORIGINS`, and use persistent storage for the database. Never expose Ollama or SMTP credentials directly to the browser.
+Use the 16-character App Password as `MAIL_PASSWORD`, not your regular Google password. Keep `backend/.env` private and never commit it. Sending also depends on the Gmail account's SMTP access and Google's current account limits. The application requires explicit approval before sending a follow-up.
