@@ -69,15 +69,21 @@ npm run dev
 
 Open the local URL printed by Vite (normally http://localhost:5173). The CRM dashboard is available at http://localhost:5173/dashboard.
 
-## 4. Email setup (optional)
+## 4. Outlook email setup (optional)
 
-To enable the send-email API, edit `backend/.env` and provide:
+To enable follow-up email delivery, edit `backend/.env` and set:
 
-- `MAIL_USERNAME`: SMTP account username
-- `MAIL_PASSWORD`: SMTP password or provider-specific app password
-- `MAIL_FROM`: sender email address
+```env
+MAIL_USERNAME=your-outlook-address@outlook.com
+MAIL_PASSWORD=your-mail-provider-approved-credential
+MAIL_FROM=your-outlook-address@outlook.com
+MAIL_PORT=587
+MAIL_SERVER=smtp.office365.com
+MAIL_STARTTLS=true
+MAIL_SSL_TLS=false
+```
 
-For Gmail, use a Google App Password; do not use your normal account password. Email sending returns a clear configuration error until these values are supplied.
+For a personal Outlook.com mailbox, use `MAIL_SERVER=smtp-mail.outlook.com`. For Microsoft 365 work or school mailboxes, use `smtp.office365.com`. Both use port 587 with STARTTLS. The mailbox must allow SMTP AUTH; Microsoft 365 administrators may need to enable authenticated SMTP for the mailbox. Use an app password only if your account and organization support it, or configure an approved OAuth-based mail integration if password-based SMTP is disabled. Never commit `backend/.env` or share mailbox credentials. Email sending remains unavailable until valid credentials and provider-side SMTP access are configured.
 
 ## Main API routes
 
