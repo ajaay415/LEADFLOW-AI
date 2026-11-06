@@ -981,3 +981,21 @@ footer {
     opacity: .5;
   }
 }
+
+/* API feedback and disabled states */
+.form-error {
+  margin: 14px 0 0;
+  padding: 11px 13px;
+  border: 1px solid rgba(248, 113, 113, 0.28);
+  border-radius: 9px;
+  color: #fecaca;
+  background: rgba(127, 29, 29, 0.18);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.primary-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.65;
+  transform: none;
+}
