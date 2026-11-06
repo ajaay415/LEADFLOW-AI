@@ -1,6 +1,6 @@
 import { useState } from "react";
 
-const API = "http://127.0.0.1:8000";
+const API = import.meta.env.VITE_API_URL || "http://127.0.0.1:8000";
 
 export default function LeadCapture() {
   const [form, setForm] = useState({
@@ -46,13 +46,16 @@ export default function LeadCapture() {
         }),
       });
 
+      const payload = await response.json();
       if (!response.ok) {
-        throw new Error("Unable to submit lead");
+        throw new Error(
+          typeof payload.detail === "string"
+            ? payload.detail
+            : "Unable to submit lead"
+        );
       }
 
-      const lead = await response.json();
-
-      setSuccess(lead);
+      setSuccess(payload);
 
       setForm({
         name: "",
@@ -165,11 +168,11 @@ export default function LeadCapture() {
               <strong>Lead received successfully! 🎉</strong>
 
               <span>
-                Lead ID: #{success.id}
+                Lead ID: #{success.lead?.id || "received"}
               </span>
 
               <span>
-                Our team can now analyze your requirement.
+                Your requirement has been analyzed and saved.
               </span>
             </div>
           )}
