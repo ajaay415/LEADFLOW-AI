@@ -63,9 +63,30 @@ def create_database():
                 lead_score INTEGER,
                 category TEXT,
                 priority TEXT,
-                recommended_action TEXT
+                recommended_action TEXT,
+                status TEXT NOT NULL DEFAULT 'NEW',
+                email_approved INTEGER NOT NULL DEFAULT 0,
+                created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
             )
             """
+        )
+        # Lightweight migration for databases created by earlier versions.
+        existing = {
+            row["name"] for row in connection.execute("PRAGMA table_info(leads)").fetchall()
+        }
+        migrations = {
+            "status": "ALTER TABLE leads ADD COLUMN status TEXT NOT NULL DEFAULT 'NEW'",
+            "email_approved": "ALTER TABLE leads ADD COLUMN email_approved INTEGER NOT NULL DEFAULT 0",
+            "created_at": "ALTER TABLE leads ADD COLUMN created_at TEXT",
+            "updated_at": "ALTER TABLE leads ADD COLUMN updated_at TEXT",
+        }
+        for column, statement in migrations.items():
+            if column not in existing:
+                connection.execute(statement)
+        connection.execute(
+            "UPDATE leads SET created_at = COALESCE(created_at, CURRENT_TIMESTAMP), "
+            "updated_at = COALESCE(updated_at, CURRENT_TIMESTAMP)"
         )
         connection.commit()
     finally:
@@ -81,6 +102,15 @@ class Lead(BaseModel):
     company: Optional[str] = Field(default=None, max_length=160)
     requirement: str = Field(min_length=5, max_length=5000)
     budget: Optional[float] = Field(default=None, ge=0)
+
+
+class LeadUpdate(BaseModel):
+    name: Optional[str] = Field(default=None, min_length=1, max_length=120)
+    email: Optional[EmailStr] = None
+    company: Optional[str] = Field(default=None, max_length=160)
+    requirement: Optional[str] = Field(default=None, min_length=5, max_length=5000)
+    budget: Optional[float] = Field(default=None, ge=0)
+    status: Optional[str] = None
 
 
 @app.get("/")
@@ -150,6 +180,91 @@ def create_lead(lead: Lead):
         "lead": dict(row),
         "analysis": analysis_result["analysis"],
     }
+
+
+
+
+
+@app.get("/dashboard/stats")
+def dashboard_stats():
+    connection = get_connection()
+    try:
+        total = connection.execute("SELECT COUNT(*) AS n FROM leads").fetchone()["n"]
+        rows = connection.execute(
+            "SELECT status, COUNT(*) AS count FROM leads GROUP BY status"
+        ).fetchall()
+        priorities = connection.execute(
+            "SELECT priority, COUNT(*) AS count FROM leads GROUP BY priority"
+        ).fetchall()
+        aggregates = connection.execute(
+            "SELECT COALESCE(SUM(budget), 0) AS pipeline_value, "
+            "COALESCE(AVG(lead_score), 0) AS average_score FROM leads"
+        ).fetchone()
+        recent = connection.execute(
+            "SELECT * FROM leads ORDER BY created_at DESC, id DESC LIMIT 5"
+        ).fetchall()
+        return {
+            "total_leads": total,
+            "by_status": {row["status"]: row["count"] for row in rows},
+            "by_priority": {row["priority"] or "UNSCORED": row["count"] for row in priorities},
+            "pipeline_value": aggregates["pipeline_value"],
+            "average_score": round(aggregates["average_score"], 1),
+            "recent_leads": [dict(row) for row in recent],
+        }
+    finally:
+        connection.close()
+
+
+@app.put("/leads/{lead_id}")
+def update_lead(lead_id: int, updates: LeadUpdate):
+    values = updates.model_dump(exclude_unset=True)
+    if not values:
+        raise HTTPException(status_code=400, detail="No lead fields supplied")
+    if "status" in values:
+        allowed_statuses = {"NEW", "CONTACTED", "QUALIFIED", "PROPOSAL", "WON", "LOST"}
+        values["status"] = str(values["status"]).upper()
+        if values["status"] not in allowed_statuses:
+            raise HTTPException(status_code=422, detail="Invalid lead status")
+    if "email" in values and values["email"] is not None:
+        values["email"] = str(values["email"])
+    if "name" in values and values["name"] is not None:
+        values["name"] = values["name"].strip()
+    if "requirement" in values and values["requirement"] is not None:
+        values["requirement"] = values["requirement"].strip()
+    values["updated_at"] = "CURRENT_TIMESTAMP"
+
+    assignments = ", ".join(
+        f"{column} = ?" if value != "CURRENT_TIMESTAMP" else f"{column} = CURRENT_TIMESTAMP"
+        for column, value in values.items()
+    )
+    params = [value for value in values.values() if value != "CURRENT_TIMESTAMP"]
+    params.append(lead_id)
+
+    connection = get_connection()
+    try:
+        cursor = connection.execute(
+            f"UPDATE leads SET {assignments} WHERE id = ?", params
+        )
+        if cursor.rowcount == 0:
+            raise HTTPException(status_code=404, detail="Lead not found")
+        connection.commit()
+        row = connection.execute("SELECT * FROM leads WHERE id = ?", (lead_id,)).fetchone()
+        return dict(row)
+    finally:
+        connection.close()
+
+
+@app.delete("/leads/{lead_id}")
+def delete_lead(lead_id: int):
+    connection = get_connection()
+    try:
+        cursor = connection.execute("DELETE FROM leads WHERE id = ?", (lead_id,))
+        if cursor.rowcount == 0:
+            raise HTTPException(status_code=404, detail="Lead not found")
+        connection.commit()
+        return {"message": "Lead deleted", "lead_id": lead_id}
+    finally:
+        connection.close()
 
 
 @app.get("/leads")
@@ -299,7 +414,7 @@ def approve_lead_response(lead_id: int):
         if row is None:
             raise HTTPException(status_code=404, detail="Lead not found")
         connection.execute(
-            "UPDATE leads SET priority = COALESCE(priority, 'MEDIUM') WHERE id = ?",
+            "UPDATE leads SET email_approved = 1, updated_at = CURRENT_TIMESTAMP WHERE id = ?",
             (lead_id,),
         )
         connection.commit()
@@ -328,6 +443,11 @@ async def send_email_to_lead(lead_id: int):
         raise HTTPException(status_code=404, detail="Lead not found")
 
     lead = dict(row)
+    if not lead.get("email_approved"):
+        raise HTTPException(
+            status_code=403,
+            detail="Approve this follow-up before sending the email.",
+        )
     message = generate_customer_response(
         name=lead["name"],
         company=lead["company"],
