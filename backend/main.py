@@ -231,13 +231,9 @@ def update_lead(lead_id: int, updates: LeadUpdate):
         values["name"] = values["name"].strip()
     if "requirement" in values and values["requirement"] is not None:
         values["requirement"] = values["requirement"].strip()
-    values["updated_at"] = "CURRENT_TIMESTAMP"
-
-    assignments = ", ".join(
-        f"{column} = ?" if value != "CURRENT_TIMESTAMP" else f"{column} = CURRENT_TIMESTAMP"
-        for column, value in values.items()
-    )
-    params = [value for value in values.values() if value != "CURRENT_TIMESTAMP"]
+    assignments = ", ".join(f"{column} = ?" for column in values)
+    assignments += ", updated_at = CURRENT_TIMESTAMP"
+    params = list(values.values())
     params.append(lead_id)
 
     connection = get_connection()
