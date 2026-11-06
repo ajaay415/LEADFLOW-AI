@@ -4,7 +4,6 @@ import os
 
 from dotenv import load_dotenv
 from fastapi_mail import ConnectionConfig, FastMail, MessageSchema
-from pydantic import EmailStr
 
 load_dotenv()
 
@@ -34,7 +33,7 @@ async def send_lead_email(customer_email: str, customer_name: str, message: str)
     """Send a plain-text follow-up email using configured SMTP credentials."""
     email_message = MessageSchema(
         subject="Follow-up regarding your enquiry",
-        recipients=[EmailStr(customer_email)],
+        recipients=[customer_email],
         body=(
             f"Hi {customer_name},\n\n{message}\n\n"
             "Best regards,\nLEADFLOW AI Team"
