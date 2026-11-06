@@ -107,17 +107,17 @@ Budget: {budget if budget is not None else "Not provided"}
             raise ValueError("Ollama returned an incomplete lead analysis")
 
         # Normalize and validate the score and priority before storing them.
-        score_match = re.search(r"LEAD_SCORE:\\s*(\\d{1,3})", result)
+        score_match = re.search(r"LEAD_SCORE:\s*(\d{1,3})", result)
         if not score_match:
             raise ValueError("Ollama returned an invalid lead score")
         score = max(0, min(int(score_match.group(1)), 100))
-        result = re.sub(r"LEAD_SCORE:\\s*\\d{1,3}", f"LEAD_SCORE: {score}", result, count=1)
+        result = re.sub(r"LEAD_SCORE:\s*\d{1,3}", f"LEAD_SCORE: {score}", result, count=1)
 
-        priority_match = re.search(r"PRIORITY:\\s*(HIGH|MEDIUM|LOW)", result, re.IGNORECASE)
+        priority_match = re.search(r"PRIORITY:\s*(HIGH|MEDIUM|LOW)", result, re.IGNORECASE)
         if not priority_match:
             raise ValueError("Ollama returned an invalid priority")
         result = re.sub(
-            r"PRIORITY:\\s*[^\\r\\n]+",
+            r"PRIORITY:\s*[^\r\n]+",
             f"PRIORITY: {priority_match.group(1).upper()}",
             result,
             count=1,
