@@ -8,7 +8,8 @@ AI-assisted lead capture, qualification, and customer follow-up. The frontend is
 - Store leads in a local SQLite database.
 - Score and categorize leads with Ollama (`llama3.2:3b` by default).
 - Fall back to deterministic local scoring when Ollama is unavailable.
-- List and retrieve leads through the REST API.
+- List, retrieve, update, and delete leads through the REST API.
+- View CRM KPIs, pipeline status, priority counts, and recent leads in the dashboard.
 - Generate customer follow-up drafts.
 - Send follow-up emails when SMTP credentials are configured.
 
@@ -66,7 +67,7 @@ npm install
 npm run dev
 ```
 
-Open the local URL printed by Vite (normally http://localhost:5173).
+Open the local URL printed by Vite (normally http://localhost:5173). The CRM dashboard is available at http://localhost:5173/dashboard.
 
 ## 4. Email setup (optional)
 
@@ -87,9 +88,12 @@ For Gmail, use a Google App Password; do not use your normal account password. E
 | POST | `/leads` | Create and analyze a lead |
 | GET | `/leads` | List leads |
 | GET | `/leads/{lead_id}` | Retrieve one lead |
+| PUT | `/leads/{lead_id}` | Update lead details or pipeline status |
+| DELETE | `/leads/{lead_id}` | Delete a lead |
+| GET | `/dashboard/stats` | CRM dashboard metrics and recent leads |
 | POST | `/leads/{lead_id}/analyze` | Re-run lead analysis |
 | GET | `/leads/{lead_id}/response` | Generate a follow-up draft |
-| POST | `/leads/{lead_id}/approve` | Mark follow-up as approved |
+| POST | `/leads/{lead_id}/approve` | Explicitly approve a follow-up email |
 | POST | `/leads/{lead_id}/send-email` | Send the follow-up email |
 
 ## Configuration
