@@ -143,7 +143,7 @@ export default function CRM() {
           </article>
           <article className="crm-panel crm-score-panel">
             <span className="crm-eyebrow">AI INTELLIGENCE</span><h2>Average lead score</h2>
-            <div className="crm-score-ring"><div><strong>{Math.round(stats?.average_score || 0)}</strong><small>/ 100</small></div></div>
+            <div className="crm-score-ring" style={{ background: `conic-gradient(#ee766c 0deg ${Math.min(100, Math.max(0, stats?.average_score || 0)) * 3.6}deg, #273447 ${Math.min(100, Math.max(0, stats?.average_score || 0)) * 3.6}deg)` }}><div><strong>{Math.round(stats?.average_score || 0)}</strong><small>/ 100</small></div></div>
             <p>Average qualification score across your saved leads.</p>
             <div className="crm-score-foot"><span>Won deals</span><strong>{won}</strong></div>
           </article>
