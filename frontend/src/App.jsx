@@ -1,6 +1,8 @@
 import { useState } from "react";
 import "./App.css";
 
+const API_BASE = import.meta.env.VITE_API_URL || "http://127.0.0.1:8000";
+
 function App() {
   const [showDemo, setShowDemo] = useState(false);
   const [mobileMenu, setMobileMenu] = useState(false);
@@ -8,80 +10,65 @@ function App() {
   const [form, setForm] = useState({
     name: "",
     company: "",
+    email: "",
     budget: "",
     requirement: "",
   });
 
   const [result, setResult] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
 
-  const analyzeLead = (e) => {
+  const analyzeLead = async (e) => {
     e.preventDefault();
+    setLoading(true);
+    setError("");
+    setResult(null);
 
-    const budget = Number(form.budget);
-    const requirement = form.requirement.toLowerCase();
+    try {
+      const response = await fetch(`${API_BASE}/leads`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          ...form,
+          budget: form.budget.trim() ? Number(form.budget) : null,
+        }),
+      });
 
-    let score = 40;
+      const payload = await response.json();
+      if (!response.ok) {
+        throw new Error(
+          typeof payload.detail === "string"
+            ? payload.detail
+            : "Unable to analyze this lead. Please try again."
+        );
+      }
 
-    if (budget >= 100000) score += 30;
-    else if (budget >= 75000) score += 25;
-    else if (budget >= 50000) score += 20;
-    else if (budget >= 25000) score += 10;
-
-    const keywords = [
-      "website",
-      "web",
-      "ecommerce",
-      "e-commerce",
-      "app",
-      "application",
-      "software",
-      "ai",
-      "automation",
-      "dashboard",
-      "crm",
-      "machine learning",
-      "python",
-    ];
-
-    const matched = keywords.filter((word) =>
-      requirement.includes(word)
-    ).length;
-
-    score += Math.min(matched * 5, 20);
-
-    if (form.company.trim()) score += 5;
-
-    if (requirement.length > 120) score += 5;
-
-    score = Math.max(0, Math.min(score, 100));
-
-    let priority;
-    let action;
-
-    if (score >= 80) {
-      priority = "🔥 HIGH PRIORITY";
-      action =
-        "Strong purchase intent. Contact this lead immediately.";
-    } else if (score >= 55) {
-      priority = "⚡ MEDIUM PRIORITY";
-      action =
-        "Follow up with this lead and collect more requirements.";
-    } else {
-      priority = "○ LOW PRIORITY";
-      action =
-        "Keep this lead engaged and follow up later.";
+      const lead = payload.lead || {};
+      const analysis = payload.analysis || {};
+      setResult({
+        score: lead.lead_score ?? analysis.lead_score ?? 0,
+        priority: `${lead.priority || analysis.priority || "MEDIUM"} PRIORITY`,
+        action:
+          lead.recommended_action ||
+          analysis.recommended_action ||
+          "Follow up with this customer.",
+        category: lead.category || analysis.category || "General Enquiry",
+      });
+    } catch (requestError) {
+      setError(
+        requestError.message ||
+          "Could not connect to LEADFLOW AI. Check that the backend is running."
+      );
+    } finally {
+      setLoading(false);
     }
-
-    setResult({
-      score,
-      priority,
-      action,
-    });
   };
 
   const closeDemo = () => {
     setShowDemo(false);
     setResult(null);
+    setError("");
   };
 
   return (
@@ -625,6 +612,19 @@ function App() {
               />
 
               <input
+                type="email"
+                placeholder="Email address"
+                value={form.email}
+                onChange={(e) =>
+                  setForm({
+                    ...form,
+                    email: e.target.value,
+                  })
+                }
+                required
+              />
+
+              <input
                 type="text"
                 placeholder="Company"
                 value={form.company}
@@ -647,7 +647,6 @@ function App() {
                     budget: e.target.value,
                   })
                 }
-                required
               />
 
               <textarea
@@ -665,11 +664,14 @@ function App() {
               <button
                 className="primary-btn full-btn"
                 type="submit"
+                disabled={loading}
               >
-                Analyze Lead →
+                {loading ? "Analyzing with AI..." : "Analyze Lead →"}
               </button>
 
             </form>
+
+            {error && <p className="form-error" role="alert">{error}</p>}
 
             {result && (
 
