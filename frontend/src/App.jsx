@@ -90,6 +90,7 @@ function App() {
             <a href="#features">Features</a>
             <a href="#how">How it works</a>
             <a href="#business">Businesses</a>
+            <a href="/dashboard">Dashboard</a>
           </nav>
 
           <div className="nav-actions">
