@@ -1,9 +1,11 @@
 import { useState } from "react";
 import "./App.css";
+import CRM from "./CRM.jsx";
 
 const API_BASE = import.meta.env.VITE_API_URL || "http://127.0.0.1:8000";
 
 function App() {
+  if (window.location.pathname === "/dashboard") return <CRM />;
   const [showDemo, setShowDemo] = useState(false);
   const [mobileMenu, setMobileMenu] = useState(false);
 
@@ -88,6 +90,7 @@ function App() {
             <a href="#features">Features</a>
             <a href="#how">How it works</a>
             <a href="#business">Businesses</a>
+            <a href="/dashboard">Dashboard</a>
           </nav>
 
           <div className="nav-actions">

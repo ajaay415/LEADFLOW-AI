@@ -8,7 +8,8 @@ AI-assisted lead capture, qualification, and customer follow-up. The frontend is
 - Store leads in a local SQLite database.
 - Score and categorize leads with Ollama (`llama3.2:3b` by default).
 - Fall back to deterministic local scoring when Ollama is unavailable.
-- List and retrieve leads through the REST API.
+- List, retrieve, update, and delete leads through the REST API.
+- View CRM KPIs, pipeline status, priority counts, and recent leads in the dashboard.
 - Generate customer follow-up drafts.
 - Send follow-up emails when SMTP credentials are configured.
 
@@ -66,42 +67,22 @@ npm install
 npm run dev
 ```
 
-Open the local URL printed by Vite (normally http://localhost:5173).
+Open the local URL printed by Vite (normally http://localhost:5173). The CRM dashboard is available at http://localhost:5173/dashboard.
 
-## 4. Email setup (optional)
+## 4. Gmail SMTP setup (optional)
 
-To enable the send-email API, edit `backend/.env` and provide:
+To enable follow-up email delivery, use a Google App Password. First enable 2-Step Verification on the Google Account, then create an App Password at https://myaccount.google.com/apppasswords (if the option is available for your account). App Passwords may be unavailable for some account types or security configurations.
 
-- `MAIL_USERNAME`: SMTP account username
-- `MAIL_PASSWORD`: SMTP password or provider-specific app password
-- `MAIL_FROM`: sender email address
+Add these values to `backend/.env`:
 
-For Gmail, use a Google App Password; do not use your normal account password. Email sending returns a clear configuration error until these values are supplied.
+```env
+MAIL_USERNAME=your-gmail-address@gmail.com
+MAIL_PASSWORD=your-16-character-app-password
+MAIL_FROM=your-gmail-address@gmail.com
+MAIL_PORT=587
+MAIL_SERVER=smtp.gmail.com
+MAIL_STARTTLS=true
+MAIL_SSL_TLS=false
+```
 
-## Main API routes
-
-| Method | Route | Purpose |
-| --- | --- | --- |
-| GET | `/` | API status |
-| GET | `/health` | Database/API health |
-| POST | `/leads` | Create and analyze a lead |
-| GET | `/leads` | List leads |
-| GET | `/leads/{lead_id}` | Retrieve one lead |
-| POST | `/leads/{lead_id}/analyze` | Re-run lead analysis |
-| GET | `/leads/{lead_id}/response` | Generate a follow-up draft |
-| POST | `/leads/{lead_id}/approve` | Mark follow-up as approved |
-| POST | `/leads/{lead_id}/send-email` | Send the follow-up email |
-
-## Configuration
-
-Frontend API URL is controlled by `VITE_API_URL`. Backend settings are in `backend/.env`:
-
-- `OLLAMA_URL`
-- `OLLAMA_MODEL`
-- `OLLAMA_TIMEOUT`
-- `CORS_ORIGINS`
-- Optional `MAIL_*` SMTP values
-
-## Deployment note
-
-This repository is configured for local development with Ollama on the same machine as the API. A public frontend cannot reach a visitor's `127.0.0.1` Ollama service. For public production deployment, host the API and model on an appropriately secured server, configure the production frontend origin in `CORS_ORIGINS`, and use persistent storage for the database. Never expose Ollama or SMTP credentials directly to the browser.
+Use the 16-character App Password as `MAIL_PASSWORD`, not your regular Google password. Keep `backend/.env` private and never commit it. Sending also depends on the Gmail account's SMTP access and Google's current account limits. The application requires explicit approval before sending a follow-up.
